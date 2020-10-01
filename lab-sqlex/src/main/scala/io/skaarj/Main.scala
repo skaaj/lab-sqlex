@@ -2,15 +2,15 @@ package io.skaarj
 
 import fastparse._, NoWhitespace._
 
-object Main extends App {
-  def number[_: P] = P(CharIn("0-9").rep(1).!.map(_.toFloat))
-  def operator[_: P] = P(CharIn("*/+\\-")).!
-  def expr[_: P] = P(number ~ operator ~ number).map {
-    case (lhs, "+", rhs) => lhs + rhs
-    case (lhs, "-", rhs) => lhs - rhs
-    case (lhs, "/", rhs) => lhs / rhs
-    case (lhs, "*", rhs) => lhs * rhs
+object Main {
+  case class LogicExpr(lhs: String, operator: String, rhs: String)
+
+  def logicOperator[_: P]: P[Unit] = P(" or " | " and ")
+  def logicOperand[_: P]: P[String] = P(CharIn("a-z").rep).!
+  def logicExpr[_: P]: P[LogicExpr] = P(logicOperand ~ logicOperator.! ~ logicOperand).map {
+    case (lhs, op, rhs) => LogicExpr(lhs, op, rhs)
   }
 
-  println(parse("84/2", expr(_)))
+  def main(args: Array[String]): Unit =
+    println(parse("foo and bar or baz and har", logicExpr(_)))
 }
