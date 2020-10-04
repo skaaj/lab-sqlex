@@ -3,34 +3,58 @@ package io.skaarj
 import fastparse._, NoWhitespace._
 
 object Main {
-  sealed trait Item
-  case class Node(lhs: Item, rhs: Item) extends Item
-  case class Leaf(name: String) extends Item
+  sealed trait Expression[A] {
+    def eval: A
+  }
 
-//  def operator[_: P]: P[Unit] = P("or" | "and")
-//  def identifier[_: P]: P[String] = P(CharIn("a-z").rep).!
-//  def operand[_: P]: P[Item] = P(identifier | expr).map {
-//    case id: String => Leaf(id)
-//    case nested: Node => nested
-//  }
-//  def expr[_: P]: P[Node] = P(operand ~ " " ~ operator ~ " " ~ operand).rep.map {
-//    case Seq(x, xs @ _*) => xs.foldLeft(Node(x._1, x._2)){
-//      case (l, r) => Node(l, Node(r._1, r._2))
-//    }
-//  }
+  case class Constant[A](value: A) extends Expression[A] {
+    override def eval: A = value
+  }
 
-  case class Or(lhs: String, rhs: String)
-  case class And(lhs: String, rhs: String)
+  abstract class UnaryOperator[A, B](operation: A => B) extends Expression[B] {
+    val rhs: Expression[A]
 
-  def operator[_: P]: P[Unit] = P("or" | "and")
-  def identifier[_: P]: P[String] = P(CharIn("a-z").rep).!
-  def operand[_: P]: P[String] = P(identifier | expr).!
-  def expr[_: P]: P[String] = P(operand ~ (" " ~ operator.! ~ " " ~ operand).rep).map {
+    override def eval: B = operation(rhs.eval)
+  }
+
+  abstract class BinaryOperator[A, B, C](operation: (A, B) => C) extends Expression[C] {
+    val lhs: Expression[A]
+    val rhs: Expression[B]
+
+    override def eval: C = operation(lhs.eval, rhs.eval)
+  }
+
+  case class Or(lhs: Expression[Boolean],
+                rhs: Expression[Boolean])
+    extends BinaryOperator[Boolean, Boolean, Boolean](_ || _)
+
+  case class And(lhs: Expression[Boolean],
+                 rhs: Expression[Boolean])
+    extends BinaryOperator[Boolean, Boolean, Boolean](_ && _)
+
+  def ws[_: P]: P[Unit] = P(CharIn(" \t"))
+  def identifier[_: P]: P[Expression[Boolean]] = P(CharIn("a-z").rep).!.log.map(x => Constant(x > "a"))
+  def andExpr[_: P]: P[Expression[Boolean]] = P(identifier ~ (ws ~ "and" ~ ws ~ identifier).rep).log.map {
     case (x, xs) => xs.foldLeft(x) {
-      case (left, ("or", right)) => Or(left, right).toString
-      case (left, ("and", right)) => And(left, right).toString
+      case (left, right) => And(left, right)
     }
   }
-  def main(args: Array[String]): Unit =
-    println(parse("a and b or c and d", expr(_)))
+
+  def orExpr[_: P]: P[Expression[Boolean]] = P(andExpr ~ (ws ~ "or" ~ ws ~ andExpr).rep).log.map {
+    case (x, xs) => xs.foldLeft(x) {
+      case (left, right) => Or(left, right)
+    }
+  }
+
+  def expr[_: P]: P[Expression[Boolean]] = P(orExpr ~ End)
+
+  def main(args: Array[String]): Unit = {
+    parse("a or b", expr(_)) match {
+      case result@ Parsed.Success(value, index) =>
+        println(result)
+        println(value.eval)
+      case result @ Parsed.Failure(str, i, extra) =>
+        println(result)
+    }
+  }
 }
