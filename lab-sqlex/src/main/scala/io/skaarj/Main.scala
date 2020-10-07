@@ -33,8 +33,10 @@ object Main {
     extends BinaryOperator[Boolean, Boolean, Boolean](_ && _)
 
   def ws[_: P]: P[Unit] = P(CharIn(" \t"))
-  def identifier[_: P]: P[Expression[Boolean]] = P(CharIn("a-z").rep).!.log.map(x => Constant(x > "a"))
-  def andExpr[_: P]: P[Expression[Boolean]] = P(identifier ~ (ws ~ "and" ~ ws ~ identifier).rep).log.map {
+  def identifier[_: P]: P[Expression[Boolean]] = P(CharIn("a-z").rep(1)).!.log.map(x => Constant(if(x == "true") true else false))
+  def parens[_: P]: P[Expression[Boolean]] = P("(" ~ orExpr ~ ")").log
+  def handSide[_: P]: P[Expression[Boolean]] = P(identifier | parens).log
+  def andExpr[_: P]: P[Expression[Boolean]] = P(handSide ~ (ws ~ "and" ~ ws ~ handSide).rep).log.map {
     case (x, xs) => xs.foldLeft(x) {
       case (left, right) => And(left, right)
     }
@@ -49,12 +51,11 @@ object Main {
   def expr[_: P]: P[Expression[Boolean]] = P(orExpr ~ End)
 
   def main(args: Array[String]): Unit = {
-    parse("a or b", expr(_)) match {
-      case result@ Parsed.Success(value, index) =>
-        println(result)
-        println(value.eval)
-      case result @ Parsed.Failure(str, i, extra) =>
-        println(result)
+    val result = parse("true and (true and (true or false))", expr(_))
+    result match {
+      case Parsed.Success(value, index) =>
+        println("Result AST: " + value)
+        println("Result evaluation: " + value.eval)
     }
   }
 }
