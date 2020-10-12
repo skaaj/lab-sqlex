@@ -1,7 +1,8 @@
-package io.skaaj
+package io.skaaj.parser
 
 import fastparse.NoWhitespace._
 import fastparse._
+import io.skaaj.model._
 
 object PredicateParser {
   def apply[_: P]: P[Expression] = P(orExpression ~ End)
