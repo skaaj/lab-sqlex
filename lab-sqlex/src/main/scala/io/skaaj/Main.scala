@@ -6,6 +6,7 @@ import io.skaaj.model._
 import io.skaaj.parser.SelectParser
 
 object Main {
+  
   def main(args: Array[String]): Unit = {
 
     sealed trait FromReference
@@ -14,12 +15,13 @@ object Main {
       val alias: Option[String]
     }
 
-    case class TableLike(namespace: Option[String],
-                         name: String,
-                         alias: Option[String]) extends FromReference with Aliasable
+    case class TableLike(
+      namespace: Option[String],
+      name: String,
+      alias: Option[String]
+    ) extends FromReference with Aliasable
 
     case class From(reference: FromReference)
-
 
     def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1))
 
