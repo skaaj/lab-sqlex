@@ -36,7 +36,6 @@ object Main {
 
     def fromParser[_: P]: P[From] = P(ws.? ~ _from ~ ws ~ fromSource).map(From)
 
-
     val input =
       s"""from namespace.table as alias""".stripMargin
 

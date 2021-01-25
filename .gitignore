@@ -16,9 +16,6 @@ build
 .metals/
 .bloop/
 
-# vscode
-.vscode/
-
 # intellij idea
 *.log
 *.iml

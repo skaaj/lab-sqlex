@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "scala",
+            "request": "launch",
+            "name": "Main",
+            "mainClass": "io.skaaj.Main",
+            "args": [],
+            "jvmOptions": [],
+            "env": {}
+        }
+    ]
+}
