@@ -1,4 +1,4 @@
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.4"
 
 name := "lab-sqlex"
 organization := "io.skaaj"
