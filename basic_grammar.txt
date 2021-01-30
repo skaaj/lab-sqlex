@@ -1,0 +1,14 @@
+<Query> ::= SELECT <SelList>
+            FROM <FromList>
+            WHERE <Condition>
+
+<SelList> ::= <Attribute> |
+              <Attribute> , <SelList>
+
+<FromList> ::= <Relation> |
+               <Relation> , <FromList>
+
+<Condition> ::= <Condition> AND <Condition> |
+                <Attribute> IN (<Query>)    |
+                <Attribute> = <Attribute>   |
+                <Attribute> LIKE <Pattern>
