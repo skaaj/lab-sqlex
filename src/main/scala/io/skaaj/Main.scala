@@ -1,46 +1,31 @@
 package io.skaaj
 
+import fastparse.NoWhitespace._
 import fastparse._
-import NoWhitespace._
 import io.skaaj.model._
 import io.skaaj.parser.SelectParser
+import io.skaaj.parser.PredicateParser
 
 object Main {
   
   def main(args: Array[String]): Unit = {
-
-    sealed trait FromReference
-
-    trait Aliasable {
-      val alias: Option[String]
-    }
-
-    case class TableLike(
-      namespace: Option[String],
-      name: String,
-      alias: Option[String]
-    ) extends FromReference with Aliasable
-
-    case class From(reference: FromReference)
-
-    def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1))
-
     def _from[_: P]: P[Unit] = P(IgnoreCase("from"))
-    def _as[_: P]: P[Unit] = P(IgnoreCase("as"))
+    def _where[_: P]: P[Unit] = P(IgnoreCase("where"))
 
-    def word[_: P]: P[Unit] = P(CharIn("a-zA-Z").rep(1))
-    def alias[_: P]: P[String] = P(ws ~ (_as ~ ws).? ~ word.!)
-    def fromSource[_: P]: P[TableLike] = P((word.! ~ ".").? ~ word.! ~ alias.?).map {
-      case (namespace, name, alias) => TableLike(namespace, name, alias)
-    }
+    def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1)).log
 
-    def fromParser[_: P]: P[From] = P(ws.? ~ _from ~ ws ~ fromSource).map(From)
+    def select[_: P]: P[Expression] = SelectParser.apply
+    def from[_: P]: P[Unit] = P(_from)
+    def where[_: P]: P[Unit] = P(_where)
+
+    def queryParser[_: P]: P[Expression] =
+      P(select ~ ws ~ from ~ ws ~ where)
 
     val input =
-      s"""from namespace.table as alias""".stripMargin
+      s"""select foo as bar from where""".stripMargin
 
     time {
-      val result = parse(input, fromParser(_))
+      val result = parse(input, queryParser(_))
       result match {
         case Parsed.Success(result, index) =>
           println(s"""Input: "$input"""")

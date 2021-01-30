@@ -5,7 +5,7 @@ import fastparse._
 import io.skaaj.model.{ColumnFromRef, Expression, ResultColumn, Select}
 
 object SelectParser {
-  def apply[_: P]: P[Expression] = P(ws ~ _select ~ ws ~ duplicateMode ~ resultColumns ~ End).map {
+  def apply[_: P]: P[Expression] = P(ws.? ~ _select ~ ws ~ duplicateMode ~ resultColumns).map {
     case (isDistinct, (initCols, lastCol)) => Select(isDistinct, initCols :+ lastCol)
   }
 
