@@ -12,17 +12,29 @@ object Main {
     def _from[_: P]: P[Unit] = P(IgnoreCase("from"))
     def _where[_: P]: P[Unit] = P(IgnoreCase("where"))
 
-    def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1)).log
+    def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1))
 
-    def select[_: P]: P[Expression] = SelectParser.apply
-    def from[_: P]: P[Unit] = P(_from)
+    def select[_: P]: P[Select] = SelectParser.apply
+    def predicate[_: P]: P[Expression] = PredicateParser.apply
+    def from[_: P]: P[(Seq[String], String)] = P(_from ~ ws ~ (table ~ ", ").rep ~ table)
     def where[_: P]: P[Unit] = P(_where)
 
-    def queryParser[_: P]: P[Expression] =
-      P(select ~ ws ~ from ~ ws ~ where)
+    def schema[_: P]: P[String] = P(CharIn("a-z").rep ~ ".").!
+    def alias[_: P]: P[String] = P(ws ~ (IgnoreCase("as") ~ ws).? ~ CharIn("a-z").!)
+    def table[_: P]: P[String] = P(schema.? ~ CharIn("a-z").rep(1).! ~ alias.?).map {
+      case (schema, table, alias) => schema.getOrElse("").concat(table).concat(alias.getOrElse(""))
+    }
+
+    def queryParser[_: P]: P[Query] =
+      P(select ~ ws ~ from).map { case (select, (initTables, lastTable)) =>
+        Query(select, From(initTables :+ lastTable))
+      }
 
     val input =
-      s"""select foo as bar from where""".stripMargin
+      s"""select a foo, tablea.b as bar from tablea, tableb""".stripMargin
+    
+    println(input)
+    println((1 to 9).mkString + "0" + (1 to 9).mkString)
 
     time {
       val result = parse(input, queryParser(_))
@@ -32,9 +44,10 @@ object Main {
           println(s"Result: $result")
         case failure@Parsed.Failure(str, i, extra) =>
           println(failure)
+        case f@_ =>
+          println(f)
       }
     }
-
   }
 
   def time[R](block: => R): R = {

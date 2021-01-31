@@ -2,21 +2,21 @@ package io.skaaj.parser
 
 import fastparse.NoWhitespace._
 import fastparse._
-import io.skaaj.model.{ColumnFromRef, Expression, ResultColumn, Select}
+import io.skaaj.model.{ColRef, Expression, ResultColumn, Select}
 
 object SelectParser {
-  def apply[_: P]: P[Expression] = P(ws.? ~ _select ~ ws ~ duplicateMode ~ resultColumns).map {
+  def apply[_: P]: P[Select] = P(ws.? ~ _select ~ ws ~ duplicateMode ~ resultColumns).map {
     case (isDistinct, (initCols, lastCol)) => Select(isDistinct, initCols :+ lastCol)
   }
 
-  private def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1))
+  private def ws[_: P]: P[Unit] = P(CharIn(" \t\n").rep(1) ~ !"from")
 
   private def _select[_: P]: P[Unit] = P(IgnoreCase("select"))
   private def _duplicateMode[_: P]: P[String] = P(StringInIgnoreCase("all","distinct")).!
   private def _as[_: P]: P[Unit] = P(IgnoreCase("as"))
 
   private def rcSourceObject[_: P]: P[String] =
-    P(CharIn("a-z").rep(1).! ~ ".")
+    P(CharIn("a-z0-9").rep(1).! ~ ".")
 
   private def rcSourceColumn[_: P]: P[String] =
     P(CharIn("a-z").rep(1) | "*").!
@@ -28,7 +28,7 @@ object SelectParser {
     P(ws.? ~ "," ~ ws.?)
 
   private def rc[_: P]: P[ResultColumn] = P(rcSourceObject.? ~ rcSourceColumn ~ (ws ~ rcAlias).?).map {
-    case (sourceObject, sourceColumn, alias) => ColumnFromRef(sourceObject, sourceColumn, alias)
+    case (sourceObject, sourceColumn, alias) => ColRef(sourceObject, sourceColumn, alias)
   }
 
   private def resultColumns[_: P]: P[(Seq[ResultColumn], ResultColumn)] =
